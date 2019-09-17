@@ -4,6 +4,8 @@ import React from 'react';
 import fullpageStyles from 'fullpage.js/dist/fullpage.min.css'; // eslint-disable-line no-unused-vars
 
 import Logger from '../Logger';
+
+// IMPORT REFERENCE FROM THE DOM
 import {
   MAIN_SELECTOR,
   ID_SELECTOR,
@@ -13,12 +15,17 @@ import {
 
 let Fullpage;
 
+// CHECKS IF IS A VALID FUNCTION
 const isFunc = val => typeof val === 'function';
+// FUNNCTION TO COMPARE TWO ARRAYS
 const isEqualArray = (firstArr, secondArr) => {
+  // IF LENGHT IS DIFFERENT THEN IS AUTOMATICALLY NOT THE SAME
   if (firstArr.length !== secondArr.length) return false;
 
   return firstArr.find(el => !secondArr.includes(el)) == null;
 };
+
+// ARRAY OF CALLBACK FUNCTIONS
 const fullpageCallbacks = [
   'afterLoad',
   'afterRender',
@@ -30,41 +37,52 @@ const fullpageCallbacks = [
   'onSlideLeave',
 ];
 
+// REACT CLASS FOR FULLPAGE WRAPPER DEFINED
 class ReactFullpage extends React.Component {
+
+  // CONSTRUCTOR CREATED
   constructor(props) {
     super(props);
     const { render, pluginWrapper } = this.props;
 
+  // CHECKS IF THE RENDER PROPS IS USED
     if (!isFunc(render)) {
+      // IF NOT THEN IT RETURNS AN ERROR
       throw new Error('must provide render prop to <ReactFullpage />');
     }
+
 
     this.log = Logger(this.props.debug, 'ReactFullpage');
     this.log('Building component');
 
     this.log('Importing vendor files');
+    // VERIFIES IF scrollOverflow IS SET AS PROPS
     this.importVendors();
 
+    // CHECKS IF PLUGIN WRAPPER IT'S NEEDED
     if (pluginWrapper) {
       this.log('Calling plugin wrapper');
       pluginWrapper();
     }
 
+    // LOAD THE MIN VER OF FULLPAGE
     this.log('Requiring fullpage.js');
     Fullpage = require('fullpage.js/dist/fullpage.extensions.min');
 
+    // INITIALIZED STATE
     this.state = {
       initialized: false,
       sectionCount: 0,
       slideCount: 0,
-      slideContent: [],
     };
   }
 
   componentDidMount() {
+    // GET OPTIONS SET IN REACT IMPLEMENTATION
     const opts = this.buildOptions();
     this.log('React Lifecycle: componentDidMount()');
 
+    // IF FULLPAGE EXIST THEN INITIALIZE IT
     if (Fullpage) {
       this.init(opts);
       this.markInitialized();
@@ -88,16 +106,18 @@ class ReactFullpage extends React.Component {
       return;
     }
     // compare old slide content vs new slide content
-    let isSameContent = slideContent.every( function(value, index) { return value === newSlideContent[index] } );
-    const slidesContainSameContent = ( slideContent.length > 0 && slideContent.length === newSlideContent.length && isSameContent );
-    this.log( isSameContent  )
+    let isSameContent = isEqualArray( slideContent , newSlideContent );
+    const slidesContainSameContent = ( slideContent.length > 0 && isSameContent );
+    this.log( 'isSameContent:' + isSameContent, this.state  )
 
     if (sectionCount === newSectionCount && slideCount === newSlideCount && slidesContainSameContent) {
       return;
+    } else {
+      this.log('rebuilding due to a change in fullpage.js sections/slides');
+      this.reRender();
     }
     // NOTE: if sections/slides have changed we need to rebuild
-    this.log('rebuilding due to a change in fullpage.js sections/slides');
-    this.reRender();
+
   }
 
   componentWillUnmount() {
@@ -118,10 +138,9 @@ class ReactFullpage extends React.Component {
 
   getSlideContent() {
     const { slideSelector = DEFAULT_SLIDE } = this.props;
-    const contentArray = [...document.querySelectorAll(slideSelector)].map(slide => {
-      return slide.innerHTML
+    const contentArray = [ ...document.querySelectorAll(slideSelector) ].map(slide => {
+      return slide.firstChild.firstChild.children
     } ) ;
-    this.log( 'contentArray = ', contentArray )
     return contentArray;
   }
 
@@ -141,6 +160,7 @@ class ReactFullpage extends React.Component {
     this.fullpageApi = window.fullpage_api;
     this.fpUtils = window.fp_utils;
     this.fpEasings = window.fp_easings;
+    this.log( 'this.fpUtils', this.fpUtils )
     this.markInitialized();
   }
 
